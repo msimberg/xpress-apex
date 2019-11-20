@@ -324,12 +324,12 @@ include(GNUInstallDirs)
 # Unless HPXMP is also used.
 
 add_hpx_library(apex
-  DYNAMIC NOLIBS EXCLUDE_FROM_ALL
-  NOEXPORT
+  DYNAMIC
+  INSTALL
   SOURCES ${apex_sources}
   HEADERS ${apex_headers}
-  DEPENDENCIES ${_dependencies}
-    hpx
+  DEPENDENCIES
+    ${_dependencies}
     ${ompt_dependency}
   FOLDER "Core/Dependencies")
 
@@ -337,7 +337,8 @@ target_include_directories(apex PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
     $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}>
     $<BUILD_INTERFACE:${APEX_BINARY_DIR}>
-    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}>)
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}>
+    $<INSTALL_INTERFACE:include>)
 
 # To have the compile options and definitions
 target_link_libraries(apex PUBLIC apex_flags)
@@ -345,7 +346,8 @@ target_link_libraries(apex PUBLIC apex_flags)
 # Link to all imported targets
 foreach(lib IN LISTS _apex_imported_targets)
   if (TARGET "${lib}")
-    target_link_libraries(apex PUBLIC ${lib})
+    # We set these targets up again in HPX
+    target_link_libraries(apex PRIVATE ${lib})
   endif()
 endforeach()
 
@@ -361,16 +363,18 @@ endif (APEX_USE_WEAK_SYMBOLS)
 # add the binary tree to the search path for include files
 # so that we will find apex_config.h
 if(HAVE_RCR)
-  target_include_directories(apex PUBLIC "${PROJECT_BINARY_DIR}/apex/src/apex" ${RCR_INCLUDE_PATH})
-else()
-  target_include_directories(apex PUBLIC "${PROJECT_BINARY_DIR}/apex/src/apex")
+  target_include_directories(apex PUBLIC RCR_INCLUDE_PATH})
 endif()
 
 configure_file (
   "${APEX_SOURCE_DIR}/apex_config.h.in"
   "${APEX_BINARY_DIR}/apex_config.h")
 
-INSTALL(FILES ${apex_headers} DESTINATION include)
+install(FILES ${apex_headers} DESTINATION include)
+install(FILES "${APEX_BINARY_DIR}/apex_config.h" DESTINATION include)
+
+hpx_export_targets(apex_flags)
+install(TARGETS apex_flags EXPORT HPXTargets)
 
 set(AMPLIFIER_ROOT ${AMPLIFIER_ROOT} PARENT_SCOPE)
 set(APEX_FOUND ON PARENT_SCOPE)
